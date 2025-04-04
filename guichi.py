@@ -12,11 +12,10 @@ sys.path.append('/home/appuser/.local/lib/python3.11/site-packages')
 import matplotlib.pyplot as plt
 import re
 
-
 # Configuración de la página
 st.set_page_config(
-    page_title="Calculadora de Derivadas",
-    page_icon="🧮",
+    page_title="🔥CALCULADORA DE DERIVADAS🔥",
+    page_icon="🧮📐",
     layout="wide"
 )
 
@@ -362,10 +361,10 @@ with st.sidebar:
     st.divider()
     with st.expander("📌 Ejemplos rápidos"):
         # Tus ejemplos actuales aquí...
-        if st.button("x² + y", key="ejemplo1"):
-            st.session_state.funcion = "x**2 + y"
-        if st.button("sin(x)*cos(y)", key="ejemplo2"):
-            st.session_state.funcion = "sin(x)*cos(y)"
+        if st.button("x² + x", key="ejemplo1"):
+            st.session_state.funcion = "x**2 + x"
+        if st.button("sin(x)*cos(x)", key="ejemplo2"):
+            st.session_state.funcion = "sin(x)*cos(x)"
         if st.button("2*x**2 + 3*x + 5", key="ejemplo3"):
             st.session_state.funcion = "2*x**2 + 3*x + 5"
         if st.button("x**3 - 6*x**2 + 9*x", key="ejemplo4"):
@@ -444,11 +443,8 @@ with st.container():
         # Botón de limpiar
         st.button("🗑️ Clear", on_click=insertar_simbolo, args=("", False), key="btn_clear_main")
     with cols[2]:
-        # Indicador de estado actual
-        if funcion:
-            st.info(f"Caracteres: {len(funcion)}")
-        else:
-            st.info("Sin entrada")
+        st.button("Calcular", on_click=lambda: calcular_derivada(), key="btn_calcular")
+
     
     # Primera fila - Números
     cols = st.columns(10)
@@ -494,8 +490,31 @@ with st.container():
     st.markdown('</div>', unsafe_allow_html=True)
 
 
+# Función para calcular la derivada
+def calcular_derivada():
+    if funcion:
+        try:
+            # Cálculo simbólico
+            x = sp.symbols(variable)
+            expr = sp.sympify(funcion)
+            derivada = sp.diff(expr, x, orden)
+            
+            # Guardar resultados en session_state para mostrarlos después
+            st.session_state.resultado = {
+                "derivada": derivada,
+                "expr": expr
+            }
+        except Exception as e:
+            st.session_state.resultado = {"error": str(e)}
+
 # Cálculo y gráficos
-if funcion:
+if "resultado" in st.session_state and st.session_state.resultado:
+    resultado = st.session_state.resultado
+    if "error" in resultado:
+        st.error(f"Error en el cálculo: {resultado['error']}")
+    else:
+        expr = resultado["expr"]
+        derivada = resultado["derivada"]
     try:
         # Cálculo simbólico
         x = sp.symbols(variable)
@@ -611,6 +630,58 @@ if funcion:
                     f"f({variable})": [d[1] for d in data],
                     f"f{'^'+str(orden) if orden>1 else ''}'({variable})": [d[2] for d in data]
                 })
+            
+                    # Tabla de máximos y mínimos
+        if mostrar_tabla:
+            st.subheader("📈 Máximos y mínimos de la función:")
+            
+            # Calcular puntos críticos (donde la primera derivada es 0)
+            try:
+                primera_derivada = sp.diff(expr, x)
+                puntos_criticos = sp.solve(primera_derivada, x)
+                
+                if puntos_criticos:
+                    # Analizar cada punto crítico para determinar si es máximo o mínimo
+                    data_extremos = []
+                    
+                    for punto in puntos_criticos:
+                        try:
+                            # Evaluar la segunda derivada para clasificar
+                            segunda_derivada = sp.diff(expr, x, 2)
+                            valor_segunda_derivada = float(segunda_derivada.subs(x, punto))
+                            
+                            if valor_segunda_derivada < 0:
+                                tipo = "Máximo"
+                            elif valor_segunda_derivada > 0:
+                                tipo = "Mínimo"
+                            else:
+                                tipo = "Punto de inflexión"
+                            
+                            # Calcular el valor de la función en ese punto
+                            valor_funcion = float(expr.subs(x, punto))
+                            
+                            # Redondear valores para mejor visualización
+                            punto_redondeado = float(round(float(punto), 4))
+                            valor_redondeado = float(round(valor_funcion, 4))
+                            
+                            data_extremos.append([punto_redondeado, valor_redondeado, tipo])
+                        except Exception as e:
+                            # Si hay error al evaluar algún punto
+                            pass
+                    
+                    if data_extremos:
+                        st.write("Puntos críticos encontrados:")
+                        st.table({
+                            f"{variable}": [d[0] for d in data_extremos],
+                            "f(x)": [d[1] for d in data_extremos],
+                            "Tipo": [d[2] for d in data_extremos]
+                        })
+                    else:
+                        st.info("No se encontraron máximos o mínimos en el dominio analizado.")
+                else:
+                    st.info("No se encontraron puntos críticos para esta función.")
+            except Exception as e:
+                st.warning(f"No se pudieron calcular los puntos críticos: {str(e)}")
         
     except Exception as e:
         st.error(f"Error en el cálculo: {str(e)}")
@@ -619,4 +690,4 @@ if funcion:
 
 # Footer
 st.divider()
-st.caption("✨ Calculadora de Derivadas con Paso a Paso | Streamlit")
+st.caption("✨ Calculadora de Derivadas | Streamlit ✨")
